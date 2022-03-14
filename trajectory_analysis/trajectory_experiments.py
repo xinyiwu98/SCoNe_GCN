@@ -40,7 +40,7 @@ Arguments + default values for trajectory_experiments.py:
    'markov': 0; include tests using a 2nd-order Markov model
    'model_name': 'model'; name of model to use when load_model = 1
 
-   'flip_edges': 0; if 1, flips orientation of a random subset of edges. with tanh activation, should perform equally
+   'flip_edges': 0; if 1, flips orientation of a random subset of edges. with activation, should perform equally
 
    'multi_graph': '': if not '', also tests on paths over the graph with the folder suffix set here
    'holes': 1; if generation new data, sets whether the graph should have holes
@@ -83,11 +83,11 @@ def hyperparams():
     """
     args = sys.argv
     hyperparams = {'model': 'scone',
-                   'epochs': 1000,
+                   'epochs': 500,
                    'learning_rate': 0.001,
                    'weight_decay': 0.00005,
                    'batch_size': 100,
-                   'hidden_layers': [(3, 16), (3, 16), (3, 16)],
+                   'hidden_layers': [(4, 16), (4, 16), (4, 16)],
                    'describe': 1,
                    'reverse': 0,
                    'load_data': 1,
@@ -134,17 +134,19 @@ def leaky_relu(x):
     return np.where(x >= 0, x, 0.01 * x)
 
 # SCoNe function
-def scone_func(weights, S_lower, S_upper, Bcond_func, last_node, flow):
+def scone_func(weights, S_lower, S_upper, S_line, Bcond_func, last_node, flow):
     """
     Forward pass of the SCoNe model with variable number of layers
     """
-    n_layers = (len(weights) - 1) / 3
+    n_layers = (len(weights) - 1) / 4
+#     print("check: ", n_layers, len(weights) )
     assert n_layers % 1 == 0, 'wrong number of weights'
     cur_out = flow
     for i in range(int(n_layers)):
-        cur_out = cur_out @ weights[i * 3] \
-                  + S_lower @ cur_out @ weights[i*3 + 1] \
-                  + S_upper @ cur_out @ weights[i*3 + 2]
+        cur_out = cur_out @ weights[i * 4] \
+                  + S_lower @ cur_out @ weights[i*4 + 1] \
+                  + S_upper @ cur_out @ weights[i*4 + 2] \
+                  + S_line @ cur_out @ weights[i*4 + 3]
 
         cur_out = tanh(cur_out)
 
@@ -239,13 +241,17 @@ def data_setup(hops=(1,), load=True, folder_suffix='schaub'):
         # Define shifts
         L1_lower = B1.T @ B1
         L1_upper = B2 @ B2.T
+        A_line = np.abs(B1.T@ B1-2*np.identity(np.shape(B1)[1]))
+        L_line = np.diag(A_line@np.ones(np.shape(A_line)[1]))-A_line
+        
         if HYPERPARAMS['flip_edges']:
             L1_lower = F @ L1_lower @ F
             L1_upper = F @ L1_upper @ F
+            L_line = F @ L_line @ F
 
 
         if HYPERPARAMS['model'] == 'scone':
-            shifts = [L1_lower, L1_upper]
+            shifts = [L1_lower, L1_upper, L_line]
             # shifts = [L1_lower, L1_lower]
 
         elif HYPERPARAMS['model'] == 'ebli':

@@ -235,10 +235,10 @@ class Scone_GCN():
             self.weights = []
             for s in weight_shapes:
                 self.weights.append(0.01 * onp.random.randn(*s))
-
         else:
             self.weights = [(in_channels, out_channels)]
 
+        print("weight_shape: ", weight_shapes)
         print('# of parameters: {}'.format(onp.sum([onp.prod(w) for w in weight_shapes])))
 
 
