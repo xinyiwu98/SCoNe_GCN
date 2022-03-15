@@ -61,6 +61,7 @@ import os, sys
 import jax.numpy as np
 from jax.scipy.special import logsumexp
 import numpy as onp
+from tensorboardX import SummaryWriter
 
 
 try:

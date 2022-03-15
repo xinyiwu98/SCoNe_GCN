@@ -11,6 +11,7 @@ from jax import grad, jit, vmap
 from jax.experimental.optimizers import adam
 from treelib import Tree
 import matplotlib.pyplot as plt
+from tensorboardX import SummaryWriter
 
 onp.random.seed(1030)
 
@@ -38,6 +39,7 @@ class Scone_GCN():
         self.weight_decay = weight_decay
 
         self.verbose = verbose
+        self.writer = SummaryWriter(log_dir='summary')
 
     def loss(self, weights, inputs, y, mask):
         """
@@ -330,8 +332,13 @@ class Scone_GCN():
                 train_acc = self.accuracy(self.shifts, inputs, y, train_mask, n_nbrs)
                 test_loss = self.loss(self.weights, inputs, y, test_mask)
                 test_acc = self.accuracy(self.shifts, inputs, y, test_mask, n_nbrs)
-                print('Epoch {} -- train loss: {:.6f} -- train acc {:.3f} -- test loss {:.6f} -- test acc {:.3f}'
+                print('Epoch {} -- train loss: {:.6f} -- train acc {:.6f} -- test loss {:.6f} -- test acc {:.6f}'
                       .format(i // n_batches, train_loss, train_acc, test_loss, test_acc))
+                
+                self.writer.add_scalar('Loss/train', train_loss, self.epochs)
+                self.writer.add_scalar('Accuracy/train', train_acc, self.epochs)
+                self.writer.add_scalar('Loss/test', test_loss, self.epochs)
+                self.writer.add_scalar('Accuracy/test', test_acc, self.epochs)
 
                 non_faces_all.append(onp.mean(non_faces))
                 faces_all.append(onp.mean(faces))
